@@ -1,0 +1,13 @@
+[project]
+name = "news"
+version = "0.2.0"
+description = "AI digest of a public Telegram channel: local LLM rates posts, output keeps text, photos and video thumbnails"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "beautifulsoup4>=4.14.3",
+    "markdown>=3.11.3",
+    "ollama>=0.6.2",
+    "requests>=2.34.2",
+    "urllib3>=2.7.0",
+]
