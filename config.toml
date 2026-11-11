@@ -1,0 +1,20 @@
+name = "news digest bot"
+
+[start]
+DEFAULT_CHANNEL = "znua_live"
+DEFAULT_MODEL = "gemma4:e4b"
+DEFAULT_SINCE = "2026-11-11"
+DEFAULT_IMAGES_DIR = "images"
+DEFAULT_THINK = true          # True = model reasons before answering (slower, maybe better)
+BATCH_SIZE = 15                 # posts per LLM call
+MAX_EVENTS_PER_BATCH = 3
+MAX_CHARS_PER_POST = 1000        # posts are shortened before they go to the LLM
+REQUEST_TIMEOUT = 15            # seconds
+REQUEST_DELAY = 1.0             # pause between two page requests
+
+[output]
+DEFAULT_OUTPUT = "news_digest_ongoing.md"
+DEFAULT_MIN_IMPORTANCE = 4    # 1-5, only posts rated at least this high are kept    
+DEFAULT_MAKE_PDF = true         # True = also create a PDF with the images embedded
+DEFAULT_PDF = ""              # PDF file name; "" = same name as DEFAULT_OUTPUT (.pdf)
+DEFAULT_DELETE_MD = true       # True = delete the .md after the PDF was made (PDF gets a date in its name)

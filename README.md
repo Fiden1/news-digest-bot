@@ -1,78 +1,117 @@
 # Telegram AI News Digest
 
-An automated Python tool that scrapes public Telegram channels, uses a local Large Language Model (via Ollama) to analyze and rate the strategic importance of each post, and generates a formatted Markdown and PDF digest. 
+A Python tool that reads a public Telegram channel, lets a **local LLM** (via [Ollama](https://ollama.com/))
+rate every post by importance, and writes a digest as Markdown and PDF. Each highlighted post keeps its
+original text, photos and video thumbnails and gets a one-sentence AI analysis and a link to the original post.
 
-The digest beautifully mimics the Telegram interface, keeping the original text, photos, and video thumbnails, while appending a short, AI-generated analysis.
+## Features
 
-## 🚀 Features
-* **No API Keys Required:** Scrapes the public Telegram web preview (`t.me/s/...`).
-* **Privacy First:** Relies on [Ollama](https://ollama.com/) for local LLM inference. No data is sent to OpenAI, Google, or any other cloud provider.
-* **Smart Filtering:** The AI rates posts on a 1-5 scale and filters out minor news, opinions, and ads, keeping only the most important macro-events.
-* **PDF Generation:** Automatically compiles the Markdown and downloaded images into a clean, readable PDF using headless Microsoft Edge or Google Chrome.
+- **No Telegram API key.** It reads the public web preview (`t.me/s/<channel>`).
+- **Local and private.** Posts are analysed by a model running on your own machine through Ollama.
+  Nothing is sent to a cloud AI service.
+- **Importance rating.** The model rates posts from 1 to 5. Only posts at or above a threshold
+  (default 4) end up in the digest.
+- **Original text, never model text.** The model only returns post IDs, ratings and a short analysis.
+  The quoted text always comes from the original post, so the model cannot change a quote.
+- **Photos and video thumbnails** are downloaded for the selected posts and included in the digest.
+- **PDF export** with the images embedded (uses headless Microsoft Edge or Google Chrome).
+- **Resumable.** Days that are already in the digest file are skipped on the next run.
 
-## 📋 Prerequisites
-1. **Python 3.12+**
-2. **Ollama:** Installed and running locally. You will need to pull your preferred model (e.g., `ollama run gemma2`).
-3. **Browser:** Microsoft Edge or Google Chrome (required for the automatic PDF conversion).
+## Requirements
 
-## 🛠️ Installation
+1. Python 3.12 or newer
+2. [Ollama](https://ollama.com/) installed and running, with a model pulled, for example:
+   `ollama pull <model name from config.toml>`
+3. Microsoft Edge or Google Chrome (only needed for the PDF export; Edge is preinstalled on Windows)
 
-Because this project uses a `pyproject.toml`, you can install it easily using pip or your favorite package manager (like `uv` or `poetry`).
+## Installation
 
 ```bash
-# Clone the repository
 git clone <your-repo-url>
 cd <your-repo-folder>
 
-# Create a virtual environment and activate it
+# with uv
+uv sync
+
+# or with pip
 python -m venv .venv
-source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
-
-# Install the project and its dependencies
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install .
-
-# Also install markdown for the PDF conversion feature
-pip install markdown
 ```
 
-## 💻 Usage
+## Usage
 
-Run the script from the command line. By default, it looks at the `znua_live` channel.
+Run the program from the project folder, because it reads `config.toml` from the current directory.
 
 ```bash
-python main.py
+uv run main.py          # or: python main.py
 ```
 
-### Command Line Arguments
+Examples:
 
-You can heavily customize the tool's behavior using CLI flags:
-
-| Argument | Default | Description |
-| :--- | :--- | :--- |
-| `--channel` | `znua_live` | The Telegram channel username (without the `@`). |
-| `--since` | `2026-07-09` | The earliest date to process in `YYYY-MM-DD` format. |
-| `--model` | `gemma4:e4b` | The local Ollama model to use for analysis. |
-| `--min-importance`| `4` | Minimum AI rating (1-5) to include a post in the digest. |
-| `--output` | `news_digest_ongoing.md` | The name of the temporary/appended Markdown file. |
-| `--images-dir` | `images` | Folder where scraped thumbnails and photos are saved. |
-| `--[no-]make-pdf` | `--make-pdf` | Whether to generate a PDF file at the end. |
-| `--[no-]think` | `--think` | Allows "reasoning" models to think before answering. |
-| `--[no-]delete-md`| `--delete-md` | Deletes the Markdown file after a successful PDF creation. |
-
-### Examples
-
-**Analyze a different channel with a different model:**
 ```bash
-python main.py --channel kyivoperativ --model llama3 --since 2026-10-01
-```
+# start at a different day
+python main.py --since 2026-11-01
 
-**Keep the markdown file and skip PDF generation:**
-```bash
+# keep the Markdown file and skip the PDF
 python main.py --no-make-pdf --no-delete-md
+
+# only keep very important posts
+python main.py --min-importance 5
 ```
 
-## 🏗️ How it Works
-1. **Scraping:** Connects to `t.me/s/<channel>` and walks backward chronologically until it hits the `--since` date or a date it has already processed.
-2. **Batching & AI:** Chunks posts into batches of 15 and sends them to the local Ollama model. The model strictly returns JSON containing the post IDs that matter, a 1-5 rating, and a 1-sentence analysis.
-3. **Downloading:** Fetches the images/video thumbnails for the approved posts.
-4. **Rendering:** Stitches the text, images, and AI analysis together into Markdown, then calls headless Chrome/Edge to "print" it to a stylized PDF.
+## Configuration
+
+Default values live in `config.toml`. Command-line options override them for a single run.
+
+| Setting in `config.toml` | Command-line option | Meaning |
+| :--- | :--- | :--- |
+| `DEFAULT_CHANNEL` | `--channel` | Channel username without `@` |
+| `DEFAULT_SINCE` | `--since` | First day to process (`YYYY-MM-DD`) |
+| `DEFAULT_MODEL` | `--model` | Ollama model name |
+| `DEFAULT_MIN_IMPORTANCE` | `--min-importance` | Minimum rating (1-5) for a post to be kept |
+| `DEFAULT_OUTPUT` | `--output` | Markdown file that new days are appended to |
+| `DEFAULT_IMAGES_DIR` | `--images-dir` | Folder for downloaded images |
+| `DEFAULT_MAKE_PDF` | `--make-pdf` / `--no-make-pdf` | Create a PDF at the end |
+| `DEFAULT_PDF` | `--pdf` | PDF file name (empty = derived from the Markdown name) |
+| `DEFAULT_DELETE_MD` | `--delete-md` / `--no-delete-md` | Delete the Markdown file after the PDF was created |
+| `DEFAULT_THINK` | `--think` / `--no-think` | Let reasoning models think before answering (slower) |
+
+Settings without a command-line option: `BATCH_SIZE` (posts per LLM call), `MAX_EVENTS_PER_BATCH`,
+`MAX_CHARS_PER_POST` (posts are shortened before they go to the model), `REQUEST_TIMEOUT`, `REQUEST_DELAY`.
+
+## How it works
+
+1. **Scrape.** The channel preview is read page by page from newest to oldest until the `--since` date
+   or a day that is already in the digest is reached. Polls and channel boilerplate are removed.
+2. **Rate.** The posts of each day are split into batches and sent to the local model.
+   Its answer is constrained to a JSON schema (post ID, importance, analysis). Invalid IDs,
+   duplicates and posts below the threshold are discarded.
+3. **Download.** Images and video thumbnails are fetched only for the selected posts.
+4. **Write.** The digest is written as Markdown. A day is only saved if all of its batches succeeded,
+   so a failed day is retried on the next run.
+5. **PDF.** The Markdown is converted to HTML and printed to PDF by headless Edge/Chrome.
+
+## Project structure
+
+| File | Task |
+| :--- | :--- |
+| `main.py` | Command-line options and the overall flow |
+| `scraper.py` | Downloads the channel pages and turns them into `Post` objects |
+| `cleaning.py` | Cleans post text |
+| `models.py` | The `Post` data class |
+| `llm.py` | Prompt, Ollama call and validation of the model's answer |
+| `output.py` | Image download and Markdown rendering |
+| `pdf.py` | Markdown to PDF conversion |
+| `config.toml` | Default settings |
+
+## Good to know
+
+- With `DEFAULT_DELETE_MD = true`, the Markdown file is deleted after a successful PDF. The program then
+  no longer knows which days are done and starts again at `--since` on the next run. Set it to `false`
+  (or use `--no-delete-md`) if you want to continue where you stopped.
+- Times in the digest are UTC. Telegram shows your local time.
+- A small local model can misjudge importance or miss a post. The rating threshold makes this adjustable,
+  but the result is not perfect, and posts that are not selected do not appear in the digest.
+- The scraper depends on the HTML structure of `t.me/s/`, which Telegram can change.
+- The texts and images belong to the channel. Do not publish generated digests or the `images/` folder.
